@@ -7,8 +7,15 @@
 <style>
   body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f7fb;color:#18212f;padding-bottom:90px;}
   h1{text-align:center;font-size:20px;margin:10px 8px;}
-  .grid{display:grid;grid-template-columns:40px repeat(10,minmax(0,1fr));gap:3px;padding:6px;}
-  .cell,.header{background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;}
+
+  .board-shell{padding:6px;}
+  .winner-banner{margin-left:34px;background:#1d4ed8;color:#fff;text-align:center;font-weight:700;letter-spacing:.5px;padding:8px 0;border-radius:8px 8px 0 0;}
+  .board-row{display:flex;align-items:stretch;}
+  .loser-banner{width:28px;min-width:28px;background:#1d4ed8;color:#fff;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;letter-spacing:.5px;border-radius:0 0 0 8px;margin-right:6px;}
+  .board-grid-wrap{flex:1;min-width:0;}
+
+  .grid{display:grid;grid-template-columns:40px repeat(10,minmax(0,1fr));gap:3px;padding:0;}
+  .cell,.header{background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;}
   .header{background:#eef2ff;font-size:14px;}
   .cell.winner{background:#dcfce7;border:2px solid #16a34a;}
   body.locked .cell{pointer-events:none;opacity:.9;}
@@ -29,12 +36,12 @@
   .muted{color:#5b6473;font-size:14px;}
 
   @media (max-width:560px){
+    .board-shell{padding:6px;}
+    .winner-banner{margin-left:30px;font-size:12px;padding:7px 0;}
+    .loser-banner{width:24px;min-width:24px;font-size:11px;}
     .grid{grid-template-columns:34px repeat(10,minmax(0,1fr));}
-    .cell,.header{height:42px;font-size:9px;}
+    .cell,.header{height:42px;font-size:8px;}
     .header{font-size:11px;}
-  }
-    .cell,.header{height:42px;font-size:10px;}
-    .header{font-size:12px;}
   }
 </style>
 </head>
@@ -43,7 +50,15 @@
 <button class="unlock-pill" onclick="toggleLock()">Unlock</button>
 <h1>2026 NCAAB Square Board</h1>
 
-<div class="grid" id="grid"></div>
+<div class="board-shell">
+  <div class="winner-banner">WINNER</div>
+  <div class="board-row">
+    <div class="loser-banner">LOSER</div>
+    <div class="board-grid-wrap">
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
 
 <div class="section" id="winnersSection">
   <div class="card">
