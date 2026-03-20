@@ -199,9 +199,9 @@ function detectRoundInfo(game, fallbackIndex = 0){
 const DEFAULT_NAMES = [
   "David Murphy","BPC","Gollihue","Mark Samphilip","Coffey","Cap Tain","R&B","Brownie","Brownie","Blaine",
   "Gollihue","Weezy","K Brooks","Blaine","Voss","Parrish","Cap Tain","Kevin Coffey","T Daniel","TLC",
-  "R&B","Jake newsome","R&B","Yago","Kenzie Shelton","Jordan beckner","Tim N","Cap Tain","Joe Pez","J. Slivka",
+  "R&B","Jake Newsome","R&B","Yago","Kenzie Shelton","Jordan Becker","Tim N","Cap Tain","Joe Pez","J. Slivka",
   "Kristi P","Steve Coffey","Bobby Reynolds","BPC","Boles","Chad Becker","Voss","James Buckner","Cap Tain","Skid",
-  "Tim N","Akers","Matt Banker","Devon Shelton","Bryan Brown","Scott Strawn","T Daniel","Davis Murphy","Kami/Kass","Krystle S",
+  "Tim N","Akers","Matt Banker","Devon Shelton","Bryan Brown","Scott Strawn","T Daniel","David Murphy","Kami/Kass","Krystle S",
   "DAM","Osowski","Akers","J. Ashbaugh","Postal","Bryan Murphy","Benson","Megan Stephenson","Sam Schaben","Blake Campbell",
   "Jagger","BPC","TLC","Brandon & Josh","Steve Coffey","Doowackers","R&B","Chad Litton","K Riggs","GGW",
   "T Daniel","Phil Mariani","Blaine","Paulie","Benson","Nick Lemay","BPC","Weezy","R&B","Sherri",
@@ -403,7 +403,8 @@ function renderWinners(){
     const payoutText = Number(g.payout || 0).toLocaleString(undefined, {style:"currency", currency:"USD"});
     const winnerName = getSquareNameByDigits(g.row, g.col);
     const roundText = g.round ? ` (${g.round})` : "";
-    div.textContent = `${g.match} → ${winnerName} (Row ${g.row} / Col ${g.col})${roundText} • Payout: ${payoutText}`;
+    const scoreText = g.score ? ` | Final: ${g.score}` : "";
+	div.textContent = `${g.match}${scoreText} → ${winnerName} (Row ${g.row} / Col ${g.col})${roundText} • Payout: ${payoutText}`;
     winnersList.appendChild(div);
   });
   renderTotals();
@@ -457,54 +458,60 @@ function showPopup(text){
   }
 }
 
+function getDateParam(offsetDays = 0){
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
 async function fetchScores(){
   try{
-    const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard");
-    const data = await res.json();
+    const datesToCheck = [getDateParam(-1), getDateParam(0)];
+    const allEvents = [];
 
-    data.events.forEach(game => {
+    for(const dateParam of datesToCheck){
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateParam}`);
+      const data = await res.json();
+      if(Array.isArray(data.events)){
+        allEvents.push(...data.events);
+      }
+    }
+    allEvents.forEach(game => {
       const comp = game.competitions[0];
       const status = comp.status.type.description.toLowerCase();
       if(!status.includes("final")) return;
-
       const gameId = game.id;
       if(recordedGames.some(g => g.id === gameId)) return;
-
       const teams = comp.competitors;
-      const t1 = teams[0];
-      const t2 = teams[1];
-      const s1 = parseInt(t1.score, 10);
-      const s2 = parseInt(t2.score, 10);
+      const t1 = teams[0], t2 = teams[1];
+      const s1 = parseInt(t1.score,10), s2 = parseInt(t2.score,10);
       if(Number.isNaN(s1) || Number.isNaN(s2)) return;
-
-      const winnerDigit = Math.max(s1, s2) % 10;
-      const loserDigit = Math.min(s1, s2) % 10;
-
+      const winnerDigit = Math.max(s1,s2) % 10;
+      const loserDigit = Math.min(s1,s2) % 10;
       cells.forEach(c => c.classList.remove("winner"));
       const winCell = cells.find(c => Number(c.dataset.col) === winnerDigit && Number(c.dataset.row) === loserDigit);
       if(!winCell) return;
-
       winCell.classList.add("winner");
       const winnerName = getSquareNameByDigits(loserDigit, winnerDigit);
       const roundInfo = detectRoundInfo(game, recordedGames.length);
-
-      recordedGames.unshift({
-        id: gameId,
-        match: `${t1.team.shortDisplayName} vs ${t2.team.shortDisplayName}`,
-        name: winnerName,
-        row: loserDigit,
-        col: winnerDigit,
-        payout: roundInfo.amount,
-        round: roundInfo.label
-      });
-
+      recordedGames.unshift({ id: gameId, match: `${t1.team.shortDisplayName} vs ${t2.team.shortDisplayName}`, score: `${s1}-${s2}`, name: winnerName, row: loserDigit, col: winnerDigit, payout: roundInfo.amount, round: roundInfo.label });
       showPopup(`${t1.team.shortDisplayName} vs ${t2.team.shortDisplayName} winner!`);
       renderWinners();
       saveBoard();
     });
-  }catch(e){
-    console.log(e);
-  }
+  }catch(e){ console.log(e); }
+}
+function repairRecordedGames(games){
+  return (games || []).map((g) => ({
+    ...g,
+    score: g.score || "",
+    name: g.name || getSquareNameByDigits(g.row, g.col),
+    payout: g.payout ?? 100,
+    round: g.round || "Round of 64"
+  }));
 }
 
 nameInput.addEventListener("input", e => {
