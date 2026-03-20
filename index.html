@@ -15,7 +15,11 @@
   .board-grid-wrap{flex:1;min-width:0;}
 
   .grid{display:grid;grid-template-columns:40px repeat(10,minmax(0,1fr));gap:3px;padding:0;}
-  .cell,.header{background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;}
+  .cell,.header{
+  background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;
+  white-space:normal;
+  line-height:1.1;
+}
   .header{background:#eef2ff;font-size:14px;}
   .cell.winner{background:#dcfce7;border:2px solid #16a34a;}
   body.locked .cell{pointer-events:none;opacity:.9;}
