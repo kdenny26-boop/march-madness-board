@@ -100,19 +100,19 @@ function getDateBasedRoundInfo(dateString, fallbackIndex = 0){
     return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
   }
 
-  const month = d.getMonth(); // March = 2, April = 3
+  const month = d.getMonth(); // March = 3, April = 4
   const day = d.getDate();
 
-  if(month === 2){
-    if(day >= 18 && day <= 21) return ROUND_PAYOUTS[0]; // Round of 64
-    if(day >= 22 && day <= 24) return ROUND_PAYOUTS[1]; // Round of 32
-    if(day >= 27 && day <= 31) return ROUND_PAYOUTS[2]; // Sweet 16
+  if(month === 3){
+    if(day >= 18 && day <= 20) return ROUND_PAYOUTS[0]; // Round of 64
+    if(day >= 21 && day <= 22) return ROUND_PAYOUTS[1]; // Round of 32
+    if(day >= 26 && day <= 27) return ROUND_PAYOUTS[2]; // Sweet 16
+	if(day >= 28 && day <= 29) return ROUND_PAYOUTS[3]; // Elite 8
   }
 
-  if(month === 3){
-    if(day >= 1 && day <= 2) return ROUND_PAYOUTS[3]; // Elite 8
-    if(day >= 5 && day <= 6) return ROUND_PAYOUTS[4]; // Final 4
-    if(day >= 7 && day <= 9) return ROUND_PAYOUTS[5]; // Championship
+  if(month === 4){
+    if(day >= 4 && day <= 4) return ROUND_PAYOUTS[4]; // Final 4
+    if(day >= 6 && day <= 6) return ROUND_PAYOUTS[5]; // Championship
   }
 
   return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
@@ -194,8 +194,8 @@ const nameInput = document.getElementById("nameInput");
 
 let activeName = "";
 let cells = [];
-let topDigits = [...Array(10).keys()];
-let leftDigits = [...Array(10).keys()];
+let topDigits = [0,3,4,2,9,6,8,7,5,1];
+let leftDigits = [0,2,3,4,5,6,1,8,7,9];
 let recordedGames = [];
 let isLocked = false;
 
