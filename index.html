@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>March Madness Square Board</title>
+<title>March Madness Square Board)</title>
 <style>
   body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f7fb;color:#18212f;padding-bottom:90px;}
   h1{text-align:center;font-size:20px;margin:10px 8px;}
@@ -17,8 +16,10 @@
 
   .grid{display:grid;grid-template-columns:40px repeat(10,minmax(0,1fr));gap:3px;padding:0;}
   .cell,.header{
-    background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;white-space:normal;line-height:1.1;
-  }
+  background:#fff;border:1px solid #ccc;height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;border-radius:6px;overflow:hidden;padding:2px;word-break:break-word;
+  white-space:normal;
+  line-height:1.1;
+}
   .header{background:#eef2ff;font-size:14px;}
   .cell.winner{background:#dcfce7;border:2px solid #16a34a;}
   body.locked .cell{pointer-events:none;opacity:.9;}
@@ -96,13 +97,104 @@
 const COMMISSIONER_PIN = "0109";
 const STORAGE_KEY = "tapSquares";
 const ROUND_PAYOUTS = [
-  { label: "Round of 64", amount: 100 },
-  { label: "Round of 32", amount: 150 },
-  { label: "Sweet 16", amount: 200 },
-  { label: "Elite 8", amount: 250 },
-  { label: "Final 4", amount: 300 },
-  { label: "Championship", amount: 1000 }
+  {label:"Round of 64", amount:100},
+  {label:"Round of 32", amount:150},
+  {label:"Sweet 16", amount:200},
+  {label:"Elite 8", amount:250},
+  {label:"Final 4", amount:300},
+  {label:"Championship", amount:1000}
 ];
+
+function getRoundInfoFromText(text, fallbackIndex = 0){
+  const value = String(text || "").toLowerCase();
+  if(value.includes("1st round") || value.includes("first round") || value.includes("round of 64")) return ROUND_PAYOUTS[0];
+  if(value.includes("2nd round") || value.includes("second round") || value.includes("round of 32")) return ROUND_PAYOUTS[1];
+  if(value.includes("sweet 16")) return ROUND_PAYOUTS[2];
+  if(value.includes("elite 8") || value.includes("regional final")) return ROUND_PAYOUTS[3];
+  if(value.includes("final four") || value.includes("national semifinal") || value.includes("semifinal")) return ROUND_PAYOUTS[4];
+  if(value.includes("championship") || value.includes("national championship") || value.includes("title game")) return ROUND_PAYOUTS[5];
+  return fallbackIndex >= 0 ? ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)] : null;
+}
+
+function getDateBasedRoundInfo(dateString, fallbackIndex = 0){
+  const d = new Date(dateString);
+  if(Number.isNaN(d.getTime())){
+    return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
+  }
+
+  const month = d.getMonth(); // March = 3, April = 4
+  const day = d.getDate();
+
+  if(month === 3){
+    if(day >= 18 && day <= 20) return ROUND_PAYOUTS[0]; // Round of 64
+    if(day >= 21 && day <= 22) return ROUND_PAYOUTS[1]; // Round of 32
+    if(day >= 26 && day <= 27) return ROUND_PAYOUTS[2]; // Sweet 16
+	if(day >= 28 && day <= 29) return ROUND_PAYOUTS[3]; // Elite 8
+  }
+
+  if(month === 4){
+    if(day >= 4 && day <= 4) return ROUND_PAYOUTS[4]; // Final 4
+    if(day >= 6 && day <= 6) return ROUND_PAYOUTS[5]; // Championship
+  }
+
+  return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
+}
+
+function detectRoundInfo(game, fallbackIndex = 0){
+  const comp = game?.competitions?.[0] || {};
+  const noteTexts = [];
+
+  if(Array.isArray(comp.notes)){
+    comp.notes.forEach(note => {
+      if(note?.headline) noteTexts.push(note.headline);
+      if(note?.description) noteTexts.push(note.description);
+      if(note?.shortText) noteTexts.push(note.shortText);
+      if(note?.text) noteTexts.push(note.text);
+    });
+  }
+
+  if(comp.note) noteTexts.push(comp.note);
+  if(comp.status?.type?.detail) noteTexts.push(comp.status.type.detail);
+  if(game?.name) noteTexts.push(game.name);
+  if(game?.shortName) noteTexts.push(game.shortName);
+
+  const textRound = getRoundInfoFromText(noteTexts.join(" | "), -1);
+  if(textRound) return textRound;
+
+  return getDateBasedRoundInfo(game?.date || comp?.date || "", fallbackIndex);
+}
+
+function getRoundInfoFromText(text, fallbackIndex = 0){
+  const value = String(text || "").toLowerCase();
+  if(value.includes("1st round") || value.includes("first round") || value.includes("round of 64")) return ROUND_PAYOUTS[0];
+  if(value.includes("2nd round") || value.includes("second round") || value.includes("round of 32")) return ROUND_PAYOUTS[1];
+  if(value.includes("sweet 16")) return ROUND_PAYOUTS[2];
+  if(value.includes("elite 8") || value.includes("regional final")) return ROUND_PAYOUTS[3];
+  if(value.includes("final four") || value.includes("national semifinal") || value.includes("semifinal")) return ROUND_PAYOUTS[4];
+  if(value.includes("championship") || value.includes("national championship") || value.includes("title game")) return ROUND_PAYOUTS[5];
+  return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
+}
+
+function detectRoundInfo(game, fallbackIndex = 0){
+  const comp = game?.competitions?.[0] || {};
+  const noteTexts = [];
+
+  if(Array.isArray(comp.notes)){
+    comp.notes.forEach(note => {
+      if(note?.headline) noteTexts.push(note.headline);
+      if(note?.description) noteTexts.push(note.description);
+      if(note?.shortText) noteTexts.push(note.shortText);
+      if(note?.text) noteTexts.push(note.text);
+    });
+  }
+
+  if(comp.note) noteTexts.push(comp.note);
+  if(comp.status?.type?.detail) noteTexts.push(comp.status.type.detail);
+  if(game?.name) noteTexts.push(game.name);
+  if(game?.shortName) noteTexts.push(game.shortName);
+
+  return getRoundInfoFromText(noteTexts.join(" | "), fallbackIndex);
+}
 
 const DEFAULT_NAMES = [
   "David Murphy","BPC","Gollihue","Mark Samphilip","Coffey","Cap Tain","R&B","Brownie","Brownie","Blaine",
@@ -129,63 +221,7 @@ let leftDigits = [0,2,3,4,5,6,1,8,7,9];
 let recordedGames = [];
 let isLocked = false;
 
-function getRoundInfoFromText(text, fallbackIndex = 0) {
-  const value = String(text || "").toLowerCase();
-  if (value.includes("1st round") || value.includes("first round") || value.includes("round of 64")) return ROUND_PAYOUTS[0];
-  if (value.includes("2nd round") || value.includes("second round") || value.includes("round of 32")) return ROUND_PAYOUTS[1];
-  if (value.includes("sweet 16")) return ROUND_PAYOUTS[2];
-  if (value.includes("elite 8") || value.includes("regional final")) return ROUND_PAYOUTS[3];
-  if (value.includes("final four") || value.includes("national semifinal") || value.includes("semifinal")) return ROUND_PAYOUTS[4];
-  if (value.includes("championship") || value.includes("national championship") || value.includes("title game")) return ROUND_PAYOUTS[5];
-  return fallbackIndex >= 0 ? ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)] : null;
-}
-
-function getDateBasedRoundInfo(dateString, fallbackIndex = 0) {
-  const d = new Date(dateString);
-  if (Number.isNaN(d.getTime())) return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
-
-  const month = d.getMonth(); // March=3, April=4
-  const day = d.getDate();
-
-  if (month === 3) {
-    if (day >= 18 && day <= 20) return ROUND_PAYOUTS[0];
-    if (day >= 21 && day <= 23) return ROUND_PAYOUTS[1];
-    if (day >= 26 && day <= 27) return ROUND_PAYOUTS[2];
-    if (day >= 28 && day <= 30) return ROUND_PAYOUTS[3];
-  }
-  if (month === 4) {
-    if (day >= 1 && day <= 5) return ROUND_PAYOUTS[4];
-    if (day >= 6 && day <= 8) return ROUND_PAYOUTS[5];
-  }
-
-  return ROUND_PAYOUTS[Math.min(fallbackIndex, ROUND_PAYOUTS.length - 1)];
-}
-
-function detectRoundInfo(game, fallbackIndex = 0) {
-  const comp = game && game.competitions && game.competitions[0] ? game.competitions[0] : {};
-  const noteTexts = [];
-
-  if (Array.isArray(comp.notes)) {
-    comp.notes.forEach(note => {
-      if (note && note.headline) noteTexts.push(note.headline);
-      if (note && note.description) noteTexts.push(note.description);
-      if (note && note.shortText) noteTexts.push(note.shortText);
-      if (note && note.text) noteTexts.push(note.text);
-    });
-  }
-
-  if (comp.note) noteTexts.push(comp.note);
-  if (comp.status && comp.status.type && comp.status.type.detail) noteTexts.push(comp.status.type.detail);
-  if (game && game.name) noteTexts.push(game.name);
-  if (game && game.shortName) noteTexts.push(game.shortName);
-
-  const textRound = getRoundInfoFromText(noteTexts.join(" | "), -1);
-  if (textRound) return textRound;
-
-  return getDateBasedRoundInfo((game && game.date) || comp.date || "", fallbackIndex);
-}
-
-function build(savedNames) {
+function build(savedNames = null){
   grid.innerHTML = "";
   cells = [];
 
@@ -200,24 +236,23 @@ function build(savedNames) {
     grid.appendChild(d);
   });
 
-  for (let r = 0; r < 10; r++) {
+  for(let r = 0; r < 10; r++){
     const rowHeader = document.createElement("div");
     rowHeader.className = "header";
     rowHeader.textContent = leftDigits[r];
     grid.appendChild(rowHeader);
 
-    for (let c = 0; c < 10; c++) {
+    for(let c = 0; c < 10; c++){
       const div = document.createElement("div");
       div.className = "cell";
       div.dataset.row = leftDigits[r];
       div.dataset.col = topDigits[c];
-
       const index = (r * 10) + c;
       const savedValue = savedNames && savedNames[index] !== undefined ? String(savedNames[index] || "").trim() : "";
       div.textContent = savedValue || (DEFAULT_NAMES[index] || "");
 
-      div.addEventListener("click", function () {
-        if (isLocked || !activeName) return;
+      div.addEventListener("click", () => {
+        if(isLocked || !activeName) return;
         div.textContent = activeName;
         saveBoard();
         checkAutoLock();
@@ -229,45 +264,49 @@ function build(savedNames) {
   }
 }
 
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
+function shuffle(arr){
+  const a = [...arr];
+  for(let i = a.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
-    const tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
+    [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
 
-function randomize() {
+function randomize(){
   const currentNames = cells.map(c => c.textContent);
-  topDigits = shuffle([0,1,2,3,4,5,6,7,8,9]);
-  leftDigits = shuffle([0,1,2,3,4,5,6,7,8,9]);
+  topDigits = shuffle([...Array(10).keys()]);
+  leftDigits = shuffle([...Array(10).keys()]);
   build(currentNames);
   saveBoard();
 }
 
-function manualHeaders() {
+function manualHeaders(){
   const currentNames = cells.map(c => c.textContent);
   const top = prompt("Top digits", topDigits.join(","));
   const left = prompt("Left digits", leftDigits.join(","));
-  if (top) topDigits = top.split(",").map(Number).slice(0, 10);
-  if (left) leftDigits = left.split(",").map(Number).slice(0, 10);
-  if (topDigits.length !== 10 || leftDigits.length !== 10) return alert("Please enter exactly 10 digits for each side.");
+  if(top) topDigits = top.split(",").map(Number).slice(0, 10);
+  if(left) leftDigits = left.split(",").map(Number).slice(0, 10);
+  if(topDigits.length !== 10 || leftDigits.length !== 10) return alert("Please enter exactly 10 digits for each side.");
   build(currentNames);
   saveBoard();
 }
 
-function saveBoard() {
-  const data = { names: cells.map(c => c.textContent), topDigits, leftDigits, recordedGames, isLocked };
+function saveBoard(){
+  const data = {
+    names: cells.map(c => c.textContent),
+    topDigits,
+    leftDigits,
+    recordedGames,
+    isLocked
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function applyLockUI() {
+function applyLockUI(){
   document.body.classList.toggle("locked", isLocked);
   const controls = document.querySelector(".controls");
-  if (controls) {
+  if(controls){
     controls.style.display = isLocked ? "none" : "flex";
     controls.style.visibility = isLocked ? "hidden" : "visible";
     controls.style.height = isLocked ? "0" : "";
@@ -276,27 +315,26 @@ function applyLockUI() {
     controls.style.borderTop = isLocked ? "none" : "1px solid #ccc";
   }
   const lockBtn = document.querySelector(".lock-btn");
-  if (lockBtn) lockBtn.textContent = isLocked ? "Unlock" : "Lock";
+  if(lockBtn) lockBtn.textContent = isLocked ? "Unlock" : "Lock";
 }
 
-function getSquareNameByDigits(row, col) {
+function getSquareNameByDigits(row, col){
   const cell = cells.find(c => Number(c.dataset.row) === Number(row) && Number(c.dataset.col) === Number(col));
   return cell ? ((cell.textContent || "").trim() || "(empty square)") : "(empty square)";
 }
 
-function repairRecordedGames(games) {
-  return (games || []).map(g => ({
+function repairRecordedGames(games){
+  return (games || []).map((g) => ({
     ...g,
-    score: g.score || "",
-    name: g.name || getSquareNameByDigits(g.row, g.col),
-    payout: g.payout != null ? g.payout : 100,
-    round: g.round || "Round of 64"
+    name: getSquareNameByDigits(g.row, g.col),
+    payout: 100,
+    round: "Round of 64"
   }));
 }
 
-function loadBoard() {
+function loadBoard(){
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
+  if(!raw){
     build();
     renderWinners();
     checkAutoLock();
@@ -307,6 +345,7 @@ function loadBoard() {
   topDigits = data.topDigits || topDigits;
   leftDigits = data.leftDigits || leftDigits;
   isLocked = !!data.isLocked;
+
   build(data.names || null);
   recordedGames = repairRecordedGames(data.recordedGames || []);
   applyLockUI();
@@ -314,29 +353,36 @@ function loadBoard() {
   checkAutoLock();
 }
 
-function overrideRound() {
+function overrideRound(){
   const choice = prompt("Enter round:\n1 = Round of 64\n2 = Round of 32\n3 = Sweet 16\n4 = Elite 8\n5 = Final 4\n6 = Championship");
   const index = Number(choice) - 1;
-  if (index < 0 || index >= ROUND_PAYOUTS.length) return alert("Invalid selection");
-  const roundInfo = ROUND_PAYOUTS[index];
-  recordedGames = recordedGames.map(g => ({ ...g, round: roundInfo.label, payout: roundInfo.amount }));
+  if(index < 0 || index >= ROUND_PAYOUTS.length) return alert("Invalid selection");
+
+  const roundInfo = detectRoundInfo(game, recordedGames.length);
+
+  recordedGames = recordedGames.map(g => ({
+    ...g,
+    round: roundInfo.label,
+    payout: roundInfo.amount
+  }));
+
   renderWinners();
   saveBoard();
 }
 
-function toggleLock() {
-  if (isLocked) {
+function toggleLock(){
+  if(isLocked){
     const pin = prompt("Enter commissioner PIN to unlock");
-    if (pin !== COMMISSIONER_PIN) return alert("Wrong PIN");
+    if(pin !== COMMISSIONER_PIN) return alert("Wrong PIN");
   }
   isLocked = !isLocked;
   applyLockUI();
   saveBoard();
 }
 
-function checkAutoLock() {
+function checkAutoLock(){
   const filled = cells.length === 100 && cells.every(c => c.textContent.trim() !== "");
-  if (filled && !isLocked) {
+  if(filled && !isLocked){
     isLocked = true;
     applyLockUI();
     showPopup("Board Locked (Full)");
@@ -344,151 +390,150 @@ function checkAutoLock() {
   }
 }
 
-function renderWinners() {
-  cells.forEach(c => c.classList.remove("winner"));
-  recordedGames.forEach(g => {
-    const winCell = cells.find(c => Number(c.dataset.col) === Number(g.col) && Number(c.dataset.row) === Number(g.row));
-    if (winCell) winCell.classList.add("winner");
-  });
-
-  if (recordedGames.length === 0) {
+function renderWinners(){
+  if(recordedGames.length === 0){
     winnersList.textContent = "None yet";
     renderTotals();
     return;
   }
-
   winnersList.innerHTML = "";
   recordedGames.forEach(g => {
     const div = document.createElement("div");
     div.className = "card";
-    const payoutText = Number(g.payout || 0).toLocaleString(undefined, { style: "currency", currency: "USD" });
+    const payoutText = Number(g.payout || 0).toLocaleString(undefined, {style:"currency", currency:"USD"});
     const winnerName = getSquareNameByDigits(g.row, g.col);
     const roundText = g.round ? ` (${g.round})` : "";
     const scoreText = g.score ? ` | Final: ${g.score}` : "";
-    div.textContent = `${g.match}${scoreText} → ${winnerName} (Row ${g.row} / Col ${g.col})${roundText} • Payout: ${payoutText}`;
+	div.textContent = `${g.match}${scoreText} → ${winnerName} (Row ${g.row} / Col ${g.col})${roundText} • Payout: ${payoutText}`;
     winnersList.appendChild(div);
   });
   renderTotals();
 }
 
-function renderTotals() {
-  if (recordedGames.length === 0) {
+function renderTotals(){
+  if(recordedGames.length === 0){
     totalsList.textContent = "None yet";
     return;
   }
-
+	let grandTotal = 0;
   const totalsMap = new Map();
   recordedGames.forEach(g => {
     const winnerName = getSquareNameByDigits(g.row, g.col);
     const amount = Number(g.payout || 0);
-    if (!totalsMap.has(winnerName)) totalsMap.set(winnerName, { wins: 0, total: 0 });
+	grandTotal += amount;
+    if(!totalsMap.has(winnerName)){
+      totalsMap.set(winnerName, {wins: 0, total: 0});
+    }
     const entry = totalsMap.get(winnerName);
     entry.wins += 1;
     entry.total += amount;
   });
 
-  const sortedTotals = Array.from(totalsMap.entries()).sort((a, b) => b[1].total - a[1].total || b[1].wins - a[1].wins || a[0].localeCompare(b[0]));
+  const sortedTotals = Array.from(totalsMap.entries())
+    .sort((a, b) => b[1].total - a[1].total || b[1].wins - a[1].wins || a[0].localeCompare(b[0]));
+
   totalsList.innerHTML = "";
   sortedTotals.forEach(([name, data]) => {
     const div = document.createElement("div");
     div.className = "card";
-    const totalText = data.total.toLocaleString(undefined, { style: "currency", currency: "USD" });
+    const totalText = data.total.toLocaleString(undefined, {style:"currency", currency:"USD"});
     const winLabel = data.wins === 1 ? "win" : "wins";
     div.textContent = `${name} — ${data.wins} ${winLabel} • ${totalText}`;
     totalsList.appendChild(div);
   });
+  
+  const totalDiv = document.createElement("div");
+totalDiv.className = "card";
+totalDiv.style.fontWeight = "bold";
+totalDiv.style.background = "#eef2ff";
+
+const totalText = grandTotal.toLocaleString(undefined, {
+  style: "currency",
+  currency: "USD"
+});
+
+totalDiv.textContent = `TOTAL PAID OUT — ${totalText}`;
+
+totalsList.appendChild(totalDiv);
 }
 
-function showPopup(text) {
+function showPopup(text){
   const p = document.getElementById("popup");
   p.textContent = text;
   p.style.display = "block";
   setTimeout(() => { p.style.display = "none"; }, 3000);
+
   const audio = document.getElementById("winSound");
-  if (audio) { audio.currentTime = 0; audio.play().catch(() => {}); }
-  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  if(audio){
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+  if(navigator.vibrate){
+    navigator.vibrate([200, 100, 200]);
+  }
 }
 
-function getDateParam(offsetDays) {
+function getDateParam(offsetDays = 0){
   const d = new Date();
-  d.setDate(d.getDate() + (offsetDays || 0));
+  d.setDate(d.getDate() + offsetDays);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}${m}${day}`;
 }
 
-async function fetchScores() {
-  try {
-    const datesToCheck = [];
-    for (let i = -20; i <= 0; i++) datesToCheck.push(getDateParam(i));
+async function fetchScores(){
+  try{
+		const datesToCheck = [getDateParam(-1), getDateParam(0)];
+		const allEvents = [];
 
-    const allEvents = [];
-    for (const dateParam of datesToCheck) {
+    for(const dateParam of datesToCheck){
       const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${dateParam}`);
-      if (!res.ok) continue;
       const data = await res.json();
-      if (Array.isArray(data.events)) allEvents.push(...data.events);
+      if(Array.isArray(data.events)){
+        allEvents.push(...data.events);
+      }
     }
-
-    let foundNewWinner = false;
-
-    for (const game of allEvents) {
-      const comp = game && game.competitions && game.competitions[0] ? game.competitions[0] : null;
-      if (!comp) continue;
-
-      const status = (((comp.status || {}).type || {}).description || "").toLowerCase();
-      if (!status.includes("final")) continue;
-
+    allEvents.forEach(game => {
+      const comp = game.competitions[0];
+      const status = comp.status.type.description.toLowerCase();
+      if(!status.includes("final")) return;
       const gameId = game.id;
-      if (!gameId) continue;
-      if (recordedGames.some(g => g.id === gameId)) continue;
-
-      const teams = comp.competitors || [];
-      if (teams.length < 2) continue;
-
-      const t1 = teams[0];
-      const t2 = teams[1];
-      const s1 = parseInt(t1 && t1.score, 10);
-      const s2 = parseInt(t2 && t2.score, 10);
-      if (Number.isNaN(s1) || Number.isNaN(s2)) continue;
-
-      const winnerDigit = Math.max(s1, s2) % 10;
-      const loserDigit = Math.min(s1, s2) % 10;
+      if(recordedGames.some(g => g.id === gameId)) return;
+      const teams = comp.competitors;
+      const t1 = teams[0], t2 = teams[1];
+      const s1 = parseInt(t1.score,10), s2 = parseInt(t2.score,10);
+      if(Number.isNaN(s1) || Number.isNaN(s2)) return;
+      const winnerDigit = Math.max(s1,s2) % 10;
+      const loserDigit = Math.min(s1,s2) % 10;
+      cells.forEach(c => c.classList.remove("winner"));
       const winCell = cells.find(c => Number(c.dataset.col) === winnerDigit && Number(c.dataset.row) === loserDigit);
-      if (!winCell) continue;
-
+      if(!winCell) return;
+      winCell.classList.add("winner");
       const winnerName = getSquareNameByDigits(loserDigit, winnerDigit);
       const roundInfo = detectRoundInfo(game, recordedGames.length);
-      recordedGames.unshift({
-        id: gameId,
-        match: `${((t1.team || {}).shortDisplayName) || "Team 1"} vs ${((t2.team || {}).shortDisplayName) || "Team 2"}`,
-        score: `${s1}-${s2}`,
-        name: winnerName,
-        row: loserDigit,
-        col: winnerDigit,
-        payout: roundInfo.amount,
-        round: roundInfo.label
-      });
-      foundNewWinner = true;
-    }
-
-    if (foundNewWinner) {
+      recordedGames.unshift({ id: gameId, match: `${t1.team.shortDisplayName} vs ${t2.team.shortDisplayName}`, score: `${s1}-${s2}`, name: winnerName, row: loserDigit, col: winnerDigit, payout: roundInfo.amount, round: roundInfo.label });
+      showPopup(`${t1.team.shortDisplayName} vs ${t2.team.shortDisplayName} winner!`);
       renderWinners();
       saveBoard();
-      showPopup("New winner(s) loaded");
-    }
-  } catch (e) {
-    console.log("Score fetch error:", e);
-  }
+    });
+  }catch(e){ console.log(e); }
+}
+function repairRecordedGames(games){
+  return (games || []).map((g) => ({
+    ...g,
+    score: g.score || "",
+    name: g.name || getSquareNameByDigits(g.row, g.col),
+    payout: g.payout ?? 100,
+    round: g.round || "Round of 64"
+  }));
 }
 
-nameInput.addEventListener("input", function(e) {
+nameInput.addEventListener("input", e => {
   activeName = e.target.value;
 });
 
 loadBoard();
-fetchScores();
 setInterval(fetchScores, 20000);
 </script>
 </body>
